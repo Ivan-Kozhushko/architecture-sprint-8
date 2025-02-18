@@ -22,10 +22,16 @@ KEYCLOAK_PUBLIC_KEY_URL = "http://keycloak:8080/realms/reports-realm/protocol/op
 def get_public_key():
     response = requests.get(KEYCLOAK_PUBLIC_KEY_URL)
     keycloak_cert = response.json()
-    cert_pem = keycloak_cert['keys'][0]['x5c'][0]
-    # public_key = f"-----BEGIN CERTIFICATE-----\n{cert_pem}\n-----END CERTIFICATE-----"
+    logger.debug(f"Keycloak cert response: {keycloak_cert}")
+    x5c_value = None
+    for key in keycloak_cert["keys"]:
+        if key["use"] == "sig":
+            x5c_value = key["x5c"][0]
+            break
+    logger.debug(f"Sig key: {x5c_value}")
+    # public_key = f"-----BEGIN CERTIFICATE-----\n{x5c_value}\n-----END CERTIFICATE-----"
     
-    cert_bytes = base64.b64decode(cert_pem)
+    cert_bytes = base64.b64decode(x5c_value)
     cert = x509.load_der_x509_certificate(cert_bytes, default_backend())
     public_key = cert.public_key()
     
